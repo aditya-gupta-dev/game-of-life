@@ -3,6 +3,7 @@
 #include <vector>
 #include <random>
 #include <raylib.h>
+#include <iostream>
 
 using usize = std::size_t;
 
@@ -13,7 +14,7 @@ struct Config {
     usize w_width = 1280;
     usize w_height = 720;
     usize cell_size = 20;
-    double update_interval = 0.1; // Seconds per simulation step (10 updates/sec)
+    double update_interval = 0.1;
     const std::string w_title = "[Conway] - Game of Life";
     const std::string active_cells_file_name = "active_cells";
 
@@ -68,13 +69,12 @@ private:
             try {
                 active_cells.push_back(static_cast<usize>(std::stoul(line)));
             } catch (...) {
-                // Skip invalid lines
+                std::cout << "[ERROR]: failed to parse one line\n";
             }
         }
         return active_cells;
     }
 
-    // Counts live neighbors with toroidal (wrap-around) boundaries
     int CountNeighbors(int col, int row) const {
         int live_neighbors = 0;
         int i_cols = static_cast<int>(m_cols);
@@ -105,10 +105,8 @@ private:
                 int neighbors = CountNeighbors(static_cast<int>(col), static_cast<int>(row));
 
                 if (m_cells[index].is_active) {
-                    // Rule 1 & 2: Any live cell with 2 or 3 live neighbors survives
                     next_states[index] = (neighbors == 2 || neighbors == 3);
                 } else {
-                    // Rule 4: Any dead cell with exactly 3 live neighbors becomes active
                     next_states[index] = (neighbors == 3);
                 }
             }
@@ -126,19 +124,16 @@ private:
             m_is_paused = !m_is_paused;
         }
 
-        // 'N' or Right Arrow: Step one frame while paused
         if (m_is_paused && (IsKeyPressed(KEY_N) || IsKeyPressed(KEY_RIGHT))) {
             UpdateSimulation();
         }
 
-        // 'C': Clear grid
         if (IsKeyPressed(KEY_C)) {
             for (auto &cell : m_cells) {
                 cell.is_active = false;
             }
         }
 
-        // 'R': Randomize grid
         if (IsKeyPressed(KEY_R)) {
             std::random_device rd;
             std::mt19937 gen(rd());
@@ -148,7 +143,6 @@ private:
             }
         }
 
-        // Mouse Painting (Left Click: Draw, Right Click: Erase)
         if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) || IsMouseButtonDown(MOUSE_BUTTON_RIGHT)) {
             Vector2 mouse_pos = GetMousePosition();
             int col = static_cast<int>(mouse_pos.x) / static_cast<int>(m_config.cell_size);
