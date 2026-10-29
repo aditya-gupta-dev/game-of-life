@@ -1,3 +1,5 @@
+#include <fstream>
+#include <string>
 #include <vector>
 #include <iostream>
 #include <raylib.h>
@@ -10,8 +12,9 @@ struct Config {
     usize fps = 30;
     usize w_width = 1280;
     usize w_height = 720;
-    usize cell_size = 20;
+    usize cell_size = 40;
     const std::string w_title = "[convey] - game of life";
+    const std::string active_cells_file_name = "active_cells";
 
     Config() = default;
 };
@@ -24,9 +27,13 @@ struct Cell {
     bool is_active;
 
     public:
-    Cell(int x_pos, int y_pos, usize cell_size) : x(x_pos), y(y_pos), active_color(RAYWHITE), size(cell_size), is_active(false) {};
+    Cell(int x_pos, int y_pos, usize cell_size, bool active = false) : x(x_pos), y(y_pos), active_color(RAYWHITE), size(cell_size), is_active(active) {};
     void DrawCell() const {
-        DrawRectangleLines(this->x, this->y, this->size, this->size, this->active_color);
+        if (this->is_active){
+            DrawRectangle(this->x, this->y, this->size, this->size, this->active_color);
+        } else {
+            DrawRectangleLines(this->x, this->y, this->size, this->size, this->active_color);
+        }
     }
 };
 
@@ -34,6 +41,21 @@ class Window {
     private:
         const Config &m_config;
         std::vector<Cell> cells;
+
+        std::vector<usize> GetActiveCells() {
+            std::ifstream input_stream(this->m_config.active_cells_file_name);
+            std::vector<usize> active_cells;
+            std::string line;
+
+            while(std::getline(input_stream, line)) {
+                active_cells.push_back(static_cast<usize>(std::stoi(line)));
+            }
+
+            if (input_stream.is_open()) {
+                input_stream.close();
+            }
+            return active_cells;
+        }
    public:
       Window(const Config &config) : m_config(config){};
 
@@ -54,10 +76,12 @@ class Window {
                 );
             }
         }
+        for (const auto active_cell: this->GetActiveCells()) {
+            cells[active_cell].is_active = true;
+        }
     }
 
       void Run() {
-          int i = 0;
          while (!WindowShouldClose()) {
               BeginDrawing();
               ClearBackground(BLACK);
